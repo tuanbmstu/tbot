@@ -1,43 +1,40 @@
-from telegram.ext import Updater, CommandHandler, MessageHandler, Filters
-from telegram import InlineKeyboardButton, InlineKeyboardMarkup
+from telegram import InlineKeyboardButton, InlineKeyboardMarkup, Update
+from telegram.ext import Updater, CommandHandler, CallbackQueryHandler, CallbackContext
 
-# Replace 'YOUR_BOT_TOKEN' with your actual Telegram Bot token
-BOT_TOKEN = '6627462794:AAHGHYTQVFex7mVBpaf3dAHtv0BvrGcVHl0'
-CHANNEL_LINK_1 = 'https://t.me/FREEUdemyPaidCourse79'
-CHANNEL_LINK_2 = 'https://t.me/NetflixCookieOfficial'
-MEGA_LINK = 'https://mega.nz/'
-
-def start(update, context):
+def start(update: Update, context: CallbackContext) -> None:
     keyboard = [
-        [InlineKeyboardButton("Mega download", callback_data='mega')],
-        [InlineKeyboardButton("Download App", callback_data='app')],
+        [InlineKeyboardButton("Mega download", callback_data='mega_download')],
+        [InlineKeyboardButton("Download App", callback_data='download_app')]
     ]
     reply_markup = InlineKeyboardMarkup(keyboard)
-    update.message.reply_text('Bot functions:', reply_markup=reply_markup)
+    update.message.reply_text('Please choose:', reply_markup=reply_markup)
 
-def button(update, context):
+def button(update: Update, context: CallbackContext) -> None:
     query = update.callback_query
-    if query.data == 'mega':
-        query.message.reply_text('How to download from mega with fastest speed: ' + MEGA_LINK)
-    elif query.data == 'app':
+    query.answer()
+    if query.data == 'mega_download':
+        query.edit_message_text(text="How to download from megaz with fastest speed: https://www.youtube.com/watch?v=...")
+    elif query.data == 'download_app':
         keyboard = [
-            [InlineKeyboardButton("Follow Channel 1", url=CHANNEL_LINK_1)],
-            [InlineKeyboardButton("Follow Channel 2", url=CHANNEL_LINK_2)]
+            [InlineKeyboardButton("Follow Channel 1", url='https://t.me/FREEUdemyPaidCourse79')],
+            [InlineKeyboardButton("Follow Channel 2", url='https://t.me/NetflixCookieOfficial')],
+            [InlineKeyboardButton("Done", callback_data='done_following')]
         ]
         reply_markup = InlineKeyboardMarkup(keyboard)
-        query.message.reply_text('Follow the channels to unlock the Download App link:', reply_markup=reply_markup)
+        query.edit_message_text(text="With this app you can use unlimited times. Please follow these 2 Telegram channels:", reply_markup=reply_markup)
 
-def main():
-    updater = Updater(BOT_TOKEN, use_context=True)
-    dp = updater.dispatcher
+def done_following(update: Update, context: CallbackContext) -> None:
+    query = update.callback_query
+    query.answer()
+    query.edit_message_text(text="Thank you for following the channels. Here is the Mega link: https://mega.nz/...")
 
-    dp.add_handler(CommandHandler("start", start))
-    dp.add_handler(MessageHandler(Filters.text & ~Filters.command, start))
-    dp.add_handler(CallbackQueryHandler(button))
-
+def main() -> None:
+    updater = Updater("6627462794:AAHGHYTQVFex7mVBpaf3dAHtv0BvrGcVHl0")
+    updater.dispatcher.add_handler(CommandHandler('start', start))
+    updater.dispatcher.add_handler(CallbackQueryHandler(button))
+    updater.dispatcher.add_handler(CallbackQueryHandler(done_following, pattern='done_following'))
     updater.start_polling()
     updater.idle()
 
 if __name__ == '__main__':
     main()
-              
