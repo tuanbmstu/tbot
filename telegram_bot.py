@@ -1,38 +1,81 @@
-from telegram import InlineKeyboardButton, InlineKeyboardMarkup, Update
-from telegram.ext import Updater, CommandHandler, CallbackQueryHandler, CallbackContext
+from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
+from telegram.ext import Updater, CommandHandler, CallbackQueryHandler, MessageHandler, filters, ConversationHandler, CallbackContext
 
-def start(update: Update, context: CallbackContext) -> None:
+# Define conversation states
+CHOOSING, FOLLOWING, MEGA_DOWNLOAD = range(3)
+
+# Function to handle /start command
+def start(update: Update, _: CallbackContext) -> int:
     keyboard = [
-        [InlineKeyboardButton("Mega download", callback_data='mega_download')],
-        [InlineKeyboardButton("Download App", callback_data='download_app')]
+        [InlineKeyboardButton("Mega download", callback_data=str(CHOOSING))],
+        [InlineKeyboardButton("Download App", callback_data=str(FOLLOWING))],
     ]
     reply_markup = InlineKeyboardMarkup(keyboard)
-    update.message.reply_text('Please choose:', reply_markup=reply_markup)
+    update.message.reply_text(
+        "Chào mừng bạn đến với Bot của chúng tôi! Vui lòng chọn một chức năng:",
+        reply_markup=reply_markup,
+    )
+    return CHOOSING
 
-def button(update: Update, context: CallbackContext) -> None:
-    query = update.callback_query
-    query.answer()
-    if query.data == 'mega_download':
-        query.edit_message_text(text="How to download from megaz with fastest speed: https://www.youtube.com/watch?v=...")
-    elif query.data == 'download_app':
-        keyboard = [
-            [InlineKeyboardButton("Follow Channel 1", url='https://t.me/FREEUdemyPaidCourse79')],
-            [InlineKeyboardButton("Follow Channel 2", url='https://t.me/NetflixCookieOfficial')],
-            [InlineKeyboardButton("Done", callback_data='done_following')]
-        ]
-        reply_markup = InlineKeyboardMarkup(keyboard)
-        query.edit_message_text(text="With this app you can use unlimited times. Please follow these 2 Telegram channels:", reply_markup=reply_markup)
+# Function to handle 'Mega download' button press
+def mega_download(update: Update, _: CallbackContext) -> int:
+    update.callback_query.answer()
+    update.callback_query.message.reply_text(
+        "Để tải về từ Mega với tốc độ nhanh nhất, hãy truy cập vào đường link YouTube sau đây: <your_youtube_link>"
+    )
+    return ConversationHandler.END
 
-def done_following(update: Update, context: CallbackContext) -> None:
-    query = update.callback_query
-    query.answer()
-    query.edit_message_text(text="Thank you for following the channels. Here is the Mega link: https://mega.nz/...")
+# Function to handle 'Download App' button press
+def download_app(update: Update, _: CallbackContext) -> int:
+    update.callback_query.answer()
+    keyboard = [
+        [InlineKeyboardButton("Follow Channel 1", url="https://t.me/FREEUdemyPaidCourse79'")],
+        [InlineKeyboardButton("Follow Channel 2", url="https://t.me/NetflixCookieOfficial'")],
+    ]
+    reply_markup = InlineKeyboardMarkup(keyboard)
+    update.callback_query.message.reply_text(
+        "Vui lòng theo dõi cả hai kênh Telegram sau để nhận được liên kết Mega download:",
+        reply_markup=reply_markup,
+    )
+    return FOLLOWING
 
-def main() -> None:
+# Function to handle user following both channels
+def following(update: Update, _: CallbackContext) -> int:
+    update.callback_query.answer()
+    update.callback_query.message.reply_text(
+        "Chúc mừng! Bạn đã follow thành công cả hai kênh Telegram. Bây giờ bạn có thể nhận liên kết Mega download: <your_mega_link>"
+    )
+    return ConversationHandler.END
+
+# Function to handle user input that is not a button
+def fallback(update: Update, _: CallbackContext):
+    update.message.reply_text("Vui lòng chọn một trong các chức năng trên.")
+
+def main():
+    # Replace 'YOUR_TOKEN' with your actual Telegram Bot token
     updater = Updater("6627462794:AAHGHYTQVFex7mVBpaf3dAHtv0BvrGcVHl0")
-    updater.dispatcher.add_handler(CommandHandler('start', start))
-    updater.dispatcher.add_handler(CallbackQueryHandler(button))
-    updater.dispatcher.add_handler(CallbackQueryHandler(done_following, pattern='done_following'))
+    dispatcher = updater.dispatcher
+
+    # Define conversation handler for /start command
+    conversation_handler = ConversationHandler(
+        entry_points=[CommandHandler('start', start)],
+        states={
+            CHOOSING: [
+                CallbackQueryHandler(mega_download, pattern='^' + str(CHOOSING) + '$'),
+                CallbackQueryHandler(download_app, pattern='^' + str(FOLLOWING) + '$'),
+            ],
+            FOLLOWING: [
+                CallbackQueryHandler(following, pattern='^' + str(FOLLOWING) + '$'),
+            ],
+        },
+        fallbacks=[],
+    )
+
+    # Add the conversation handler to the dispatcher
+    dispatcher.add_handler(conversation_handler)
+    dispatcher.add_handler(MessageHandler(filters.text & ~filters.command, fallback))
+
+    # Start the bot
     updater.start_polling()
     updater.idle()
 
